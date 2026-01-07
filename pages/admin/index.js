@@ -5,6 +5,96 @@ import { useState, useEffect } from 'react';
 import { useAuth, useStore, formatPrice, getCategoryName, getStatusName, getStatusColor } from '../../lib/store';
 import { Header, LoadingSpinner, ErrorMessage } from '../../components/Layout';
 
+// ===== Pagination Component =====
+const Pagination = ({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) => {
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  if (totalItems === 0) return null;
+
+  // 產生頁碼陣列
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t">
+      <div className="text-xs text-gray-500">
+        顯示 {startItem}-{endItem} 筆，共 {totalItems} 筆
+      </div>
+      
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`px-2 py-1 text-xs rounded ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+          ‹ 上一頁
+        </button>
+        
+        {getPageNumbers().map((page, idx) => (
+          page === '...' ? (
+            <span key={`ellipsis-${idx}`} className="px-2 py-1 text-xs text-gray-400">...</span>
+          ) : (
+            <button
+              key={page}
+              onClick={() => onPageChange(page)}
+              className={`min-w-[28px] h-7 text-xs rounded ${currentPage === page ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              {page}
+            </button>
+          )
+        ))}
+        
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`px-2 py-1 text-xs rounded ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+          下一頁 ›
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-gray-500">每頁</span>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          className="px-2 py-1 border rounded text-xs"
+        >
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
+        <span className="text-gray-500">筆</span>
+      </div>
+    </div>
+  );
+};
+
 // ===== Inventory Modal =====
 const InventoryModal = ({ product, onClose, onSave }) => {
   const [input, setInput] = useState('');
@@ -14,20 +104,16 @@ const InventoryModal = ({ product, onClose, onSave }) => {
 
   const inputNum = Number(input) || 0;
   
-  // 計算新庫存和實際變動
   let newStock, actualChange, isValid;
   if (type === 'adjust') {
-    // 盤點：input 是目標庫存數量
     newStock = inputNum;
     actualChange = inputNum - product.stock;
     isValid = input !== '' && inputNum >= 0;
   } else if (type === 'out') {
-    // 出貨：減少庫存
     actualChange = -Math.abs(inputNum);
     newStock = product.stock + actualChange;
     isValid = input !== '' && inputNum > 0 && newStock >= 0;
   } else {
-    // 進貨：增加庫存
     actualChange = Math.abs(inputNum);
     newStock = product.stock + actualChange;
     isValid = input !== '' && inputNum > 0;
@@ -38,7 +124,6 @@ const InventoryModal = ({ product, onClose, onSave }) => {
     if (isValid) {
       setSaving(true);
       try {
-        // 盤點時傳目標數量，進出貨時傳變動量
         const valueToSave = type === 'adjust' ? inputNum : actualChange;
         await onSave(product.id, valueToSave, type, note);
         onClose();
@@ -50,7 +135,6 @@ const InventoryModal = ({ product, onClose, onSave }) => {
     }
   };
 
-  // 根據類型顯示不同的標籤和提示
   const getInputLabel = () => {
     if (type === 'adjust') return '盤點後數量 *';
     if (type === 'out') return '出貨數量 *';
@@ -76,21 +160,11 @@ const InventoryModal = ({ product, onClose, onSave }) => {
                 <button key={k} type="button" onClick={() => { setType(k); setInput(''); }} className={`py-2 rounded-lg text-xs ${type === k ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>{v}</button>
               ))}
             </div>
-            {type === 'adjust' && (
-              <p className="text-xs text-gray-500 mt-2">💡 盤點：直接輸入清點後的實際數量</p>
-            )}
+            {type === 'adjust' && <p className="text-xs text-gray-500 mt-2">💡 盤點：直接輸入清點後的實際數量</p>}
           </div>
           <div className="mb-4">
             <label className="block mb-2 font-semibold text-sm">{getInputLabel()}</label>
-            <input 
-              type="number" 
-              value={input} 
-              onChange={e => setInput(e.target.value)} 
-              min={type === 'adjust' ? '0' : '1'} 
-              placeholder={getInputPlaceholder()} 
-              required 
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary outline-none" 
-            />
+            <input type="number" value={input} onChange={e => setInput(e.target.value)} min={type === 'adjust' ? '0' : '1'} placeholder={getInputPlaceholder()} required className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary outline-none" />
           </div>
           <div className="mb-4">
             <label className="block mb-2 font-semibold text-sm">備註</label>
@@ -100,19 +174,13 @@ const InventoryModal = ({ product, onClose, onSave }) => {
             <div className={`p-3 rounded-xl mb-4 text-center ${newStock < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
               <div className="text-gray-600 text-xs">調整後庫存</div>
               <div className={`text-xl font-bold ${newStock < 0 ? 'text-red-600' : 'text-green-600'}`}>{newStock} {product.unit}</div>
-              {actualChange !== 0 && (
-                <div className={`text-sm ${actualChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  （{actualChange > 0 ? '+' : ''}{actualChange}）
-                </div>
-              )}
+              {actualChange !== 0 && <div className={`text-sm ${actualChange > 0 ? 'text-green-600' : 'text-red-600'}`}>（{actualChange > 0 ? '+' : ''}{actualChange}）</div>}
               {newStock < 0 && <div className="text-red-600 text-xs mt-1">⚠️ 庫存不能為負數</div>}
             </div>
           )}
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">取消</button>
-            <button type="submit" disabled={!isValid || saving} className={`flex-1 py-2.5 rounded-xl font-semibold text-sm ${isValid && !saving ? 'bg-primary hover:bg-primary-dark text-white' : 'bg-gray-300 cursor-not-allowed text-gray-500'}`}>
-              {saving ? '儲存中...' : '✓ 確認'}
-            </button>
+            <button type="submit" disabled={!isValid || saving} className={`flex-1 py-2.5 rounded-xl font-semibold text-sm ${isValid && !saving ? 'bg-primary hover:bg-primary-dark text-white' : 'bg-gray-300 cursor-not-allowed text-gray-500'}`}>{saving ? '儲存中...' : '✓ 確認'}</button>
           </div>
         </form>
       </div>
@@ -139,8 +207,8 @@ const ProductModal = ({ product, onClose, onSave }) => {
   };
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-6 max-w-lg w-full my-4 max-h-[90vh] overflow-y-auto">
+    <div onClick={onClose} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-3 overflow-y-auto">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-4 sm:p-6 max-w-lg w-full my-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold mb-4">{product ? '編輯商品' : '新增商品'}</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -159,8 +227,8 @@ const ProductModal = ({ product, onClose, onSave }) => {
           <div><label className="block mb-1 font-semibold text-xs">描述</label><textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary outline-none text-sm" /></div>
           <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} className="w-4 h-4" /><span className="text-sm">設為精選商品</span></label>
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">取消</button>
-            <button type="submit" disabled={saving} className={`flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm ${saving ? 'opacity-50' : ''}`}>{saving ? '儲存中...' : '儲存'}</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition text-sm">取消</button>
+            <button type="submit" disabled={saving} className={`flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl transition font-semibold text-sm ${saving ? 'opacity-50' : ''}`}>{saving ? '儲存中...' : '儲存'}</button>
           </div>
         </form>
       </div>
@@ -176,21 +244,26 @@ const CustomerModal = ({ customer, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    try { await onSave(customer.id, form); onClose(); } 
-    catch (err) { alert('儲存失敗：' + err.message); } 
-    finally { setSaving(false); }
+    try {
+      await onSave(customer.id, form);
+      onClose();
+    } catch (err) {
+      alert('儲存失敗：' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-6 max-w-md w-full">
+    <div onClick={onClose} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-3">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-4 sm:p-6 max-w-md w-full">
         <h2 className="text-lg font-bold mb-4">編輯顧客資料</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div><label className="block mb-1 font-semibold text-sm">姓名</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary outline-none" /></div>
           <div><label className="block mb-1 font-semibold text-sm">Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary outline-none" /></div>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm">取消</button>
-            <button type="submit" disabled={saving} className={`flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold text-sm ${saving ? 'opacity-50' : ''}`}>{saving ? '儲存中...' : '儲存'}</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition text-sm">取消</button>
+            <button type="submit" disabled={saving} className={`flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl transition font-semibold text-sm ${saving ? 'opacity-50' : ''}`}>{saving ? '儲存中...' : '儲存'}</button>
           </div>
         </form>
       </div>
@@ -212,8 +285,22 @@ export default function Admin() {
   const [customersLoading, setCustomersLoading] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
 
+  // 分頁狀態
+  const [invPage, setInvPage] = useState(1);
+  const [invPageSize, setInvPageSize] = useState(20);
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize, setLogPageSize] = useState(20);
+  const [prodPage, setProdPage] = useState(1);
+  const [prodPageSize, setProdPageSize] = useState(20);
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderPageSize, setOrderPageSize] = useState(20);
+  const [custPage, setCustPage] = useState(1);
+  const [custPageSize, setCustPageSize] = useState(20);
+
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) router.push('/login?redirect=/admin');
+    if (!authLoading && (!user || !isAdmin)) {
+      router.push('/login?redirect=/admin');
+    }
   }, [user, isAdmin, authLoading, router]);
 
   useEffect(() => {
@@ -222,20 +309,32 @@ export default function Admin() {
 
   const loadCustomers = async () => {
     setCustomersLoading(true);
-    try { const data = await getCustomers(); setCustomers(data); } 
-    catch (err) { console.error('載入顧客失敗:', err); } 
-    finally { setCustomersLoading(false); }
+    try {
+      const data = await getCustomers();
+      setCustomers(data);
+    } catch (err) {
+      console.error('載入顧客失敗:', err);
+    } finally {
+      setCustomersLoading(false);
+    }
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
-    try { await updateOrderStatus(orderId, newStatus); } 
-    catch (err) { alert(err.message); }
+    try {
+      await updateOrderStatus(orderId, newStatus);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const handleDeleteCustomer = async (id) => {
     if (confirm('確定刪除此顧客？')) {
-      try { await deleteCustomer(id); setCustomers(prev => prev.filter(c => c.id !== id)); } 
-      catch (err) { alert('刪除失敗：' + err.message); }
+      try {
+        await deleteCustomer(id);
+        setCustomers(prev => prev.filter(c => c.id !== id));
+      } catch (err) {
+        alert('刪除失敗：' + err.message);
+      }
     }
   };
 
@@ -255,107 +354,125 @@ export default function Admin() {
     return { orderCount: customerOrders.length, totalSpent: customerOrders.reduce((sum, o) => sum + o.total, 0) };
   };
 
+  // 分頁資料
+  const paginatedProducts = products.slice((invPage - 1) * invPageSize, invPage * invPageSize);
+  const paginatedLogs = inventoryLog.slice((logPage - 1) * logPageSize, logPage * logPageSize);
+  const paginatedProductsManage = products.slice((prodPage - 1) * prodPageSize, prodPage * prodPageSize);
+  const paginatedOrders = orders.slice((orderPage - 1) * orderPageSize, orderPage * orderPageSize);
+  const paginatedCustomers = customers.slice((custPage - 1) * custPageSize, custPage * custPageSize);
+
   return (
     <div className="min-h-screen bg-[#faf8f5]">
-      <Head><title>後台管理 | 公司名稱</title></Head>
+      <Head><title>後台管理 | 御選精肉</title></Head>
       <Header />
-
       <div className="flex flex-col md:flex-row min-h-[calc(100vh-60px)]">
-        {/* Mobile Tab */}
-        <div className="md:hidden flex bg-gray-900">
+        {/* Mobile Tab Bar */}
+        <div className="md:hidden flex bg-gray-900 overflow-x-auto">
           {[['inventory', '📊'], ['products', '📦'], ['orders', '📋'], ['customers', '👥']].map(([k, icon]) => (
-            <button key={k} onClick={() => setTab(k)} className={`flex-1 py-3 text-center ${tab === k ? 'bg-primary text-white' : 'text-gray-400'}`}><span className="text-lg">{icon}</span></button>
+            <button key={k} onClick={() => setTab(k)} className={`flex-1 py-3 text-center transition ${tab === k ? 'bg-primary text-white' : 'text-gray-400'}`}><span className="text-lg">{icon}</span></button>
           ))}
         </div>
         
         {/* Desktop Sidebar */}
-        <div className="hidden md:block w-52 bg-gray-900 p-4">
+        <div className="hidden md:block w-52 bg-gray-900 p-4 flex-shrink-0">
           <div className="mb-4 pb-3 border-b border-gray-700"><h2 className="text-white font-bold">後台管理</h2></div>
           <nav className="space-y-1">
             {[['inventory', '📊 進銷存'], ['products', '📦 商品'], ['orders', '📋 訂單'], ['customers', '👥 顧客']].map(([k, v]) => (
-              <button key={k} onClick={() => setTab(k)} className={`w-full text-left px-3 py-2 rounded-lg text-sm ${tab === k ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>{v}</button>
+              <button key={k} onClick={() => setTab(k)} className={`w-full text-left px-3 py-2 rounded-lg transition text-sm ${tab === k ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>{v}</button>
             ))}
           </nav>
           <button onClick={reload} className="w-full mt-4 px-3 py-2 text-gray-400 hover:text-white text-sm text-left">🔄 重新整理</button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-4 sm:p-6 overflow-auto">
+        <div className="flex-1 p-3 sm:p-6 overflow-auto">
           {error && <ErrorMessage message={error} onRetry={reload} />}
           
           {/* 進銷存 */}
           {tab === 'inventory' && (
             <div>
-              <h2 className="text-xl font-bold mb-4">📊 進銷存管理</h2>
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <div className="bg-white p-4 rounded-xl shadow-sm"><div className="text-2xl mb-1">📦</div><div className="text-2xl font-bold">{products.length}</div><div className="text-gray-500 text-sm">商品種類</div></div>
-                <div className="bg-white p-4 rounded-xl shadow-sm"><div className="text-2xl mb-1">💰</div><div className="text-lg font-bold">{formatPrice(totalValue)}</div><div className="text-gray-500 text-sm">庫存價值</div></div>
-                <div className={`bg-white p-4 rounded-xl shadow-sm ${lowStock > 0 ? 'border-l-4 border-orange-500' : ''}`}><div className="text-2xl mb-1">⚠️</div><div className={`text-2xl font-bold ${lowStock > 0 ? 'text-orange-500' : ''}`}>{lowStock}</div><div className="text-gray-500 text-sm">低庫存</div></div>
+              <h2 className="text-xl sm:text-2xl font-bold mb-4">📊 進銷存管理</h2>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+                <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm"><div className="text-lg sm:text-2xl mb-1">📦</div><div className="text-lg sm:text-2xl font-bold">{products.length}</div><div className="text-gray-500 text-[10px] sm:text-sm">商品種類</div></div>
+                <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm"><div className="text-lg sm:text-2xl mb-1">💰</div><div className="text-sm sm:text-lg font-bold">{formatPrice(totalValue)}</div><div className="text-gray-500 text-[10px] sm:text-sm">庫存價值</div></div>
+                <div className={`bg-white p-3 sm:p-4 rounded-xl shadow-sm ${lowStock > 0 ? 'border-l-4 border-orange-500' : ''}`}><div className="text-lg sm:text-2xl mb-1">⚠️</div><div className={`text-lg sm:text-2xl font-bold ${lowStock > 0 ? 'text-orange-500' : ''}`}>{lowStock}</div><div className="text-gray-500 text-[10px] sm:text-sm">低庫存</div></div>
               </div>
+              
               <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs">商品</th><th className="px-3 py-2 text-left text-xs">庫存</th><th className="px-3 py-2 text-left text-xs hidden sm:table-cell">價值</th><th className="px-3 py-2 text-left text-xs">狀態</th><th className="px-3 py-2 text-left text-xs">操作</th></tr></thead>
-                  <tbody>
-                    {products.map(p => (
-                      <tr key={p.id} className={`border-t ${p.stock < 20 ? 'bg-yellow-50' : ''}`}>
-                        <td className="px-3 py-2 font-semibold text-xs">{p.name}</td>
-                        <td className="px-3 py-2 text-xs"><span className={`font-bold ${p.stock < 10 ? 'text-red-600' : p.stock < 20 ? 'text-orange-500' : ''}`}>{p.stock}</span></td>
-                        <td className="px-3 py-2 text-xs hidden sm:table-cell">{formatPrice(p.price * p.stock)}</td>
-                        <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${p.stock < 10 ? 'bg-red-100 text-red-600' : p.stock < 20 ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{p.stock < 10 ? '緊急' : p.stock < 20 ? '偏低' : '正常'}</span></td>
-                        <td className="px-3 py-2"><button onClick={() => setInvModal(p)} className="px-2 py-1 bg-primary text-white text-[10px] rounded-lg hover:bg-primary-dark">調整</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {inventoryLog.length > 0 && (<>
-                <h3 className="text-base font-bold mb-2">異動紀錄</h3>
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50"><tr><th className="px-2 py-2 text-left">時間</th><th className="px-2 py-2 text-left">商品</th><th className="px-2 py-2 text-left">類型</th><th className="px-2 py-2 text-left">數量</th><th className="px-2 py-2 text-left hidden sm:table-cell">備註</th></tr></thead>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">商品</th><th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">庫存</th><th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 hidden sm:table-cell">價值</th><th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">狀態</th><th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">操作</th></tr></thead>
                     <tbody>
-                      {inventoryLog.slice(0, 20).map(log => {
-                        const prod = products.find(x => x.id === log.productId);
-                        return (<tr key={log.id} className="border-t">
-                          <td className="px-2 py-2 text-gray-500">{new Date(log.timestamp).toLocaleDateString('zh-TW')}</td>
-                          <td className="px-2 py-2">{prod?.name || '已刪除'}</td>
-                          <td className="px-2 py-2"><span className={`px-1.5 py-0.5 rounded text-[10px] ${log.type === 'in' ? 'bg-green-100 text-green-600' : log.type === 'out' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{log.type === 'in' ? '進' : log.type === 'out' ? '出' : '盤'}</span></td>
-                          <td className={`px-2 py-2 font-semibold ${log.change > 0 ? 'text-green-600' : 'text-red-600'}`}>{log.change > 0 ? '+' : ''}{log.change}</td>
-                          <td className="px-2 py-2 text-gray-500 hidden sm:table-cell truncate max-w-[150px]">{log.note}</td>
-                        </tr>);
-                      })}
+                      {paginatedProducts.map(p => (
+                        <tr key={p.id} className={`border-t ${p.stock < 20 ? 'bg-yellow-50' : ''}`}>
+                          <td className="px-3 py-2 font-semibold text-xs">{p.name}</td>
+                          <td className="px-3 py-2 text-xs"><span className={`font-bold ${p.stock < 10 ? 'text-red-600' : p.stock < 20 ? 'text-orange-500' : ''}`}>{p.stock}</span></td>
+                          <td className="px-3 py-2 text-xs hidden sm:table-cell">{formatPrice(p.price * p.stock)}</td>
+                          <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${p.stock < 10 ? 'bg-red-100 text-red-600' : p.stock < 20 ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{p.stock < 10 ? '緊急' : p.stock < 20 ? '偏低' : '正常'}</span></td>
+                          <td className="px-3 py-2"><button onClick={() => setInvModal(p)} className="px-2 py-1 bg-primary text-white text-[10px] rounded-lg hover:bg-primary-dark">調整</button></td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </>)}
+                <Pagination currentPage={invPage} totalItems={products.length} pageSize={invPageSize} onPageChange={(p) => setInvPage(p)} onPageSizeChange={(s) => { setInvPageSize(s); setInvPage(1); }} />
+              </div>
+
+              {inventoryLog.length > 0 && (
+                <>
+                  <h3 className="text-base font-bold mb-2">異動紀錄</h3>
+                  <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50"><tr><th className="px-2 py-2 text-left">時間</th><th className="px-2 py-2 text-left">商品</th><th className="px-2 py-2 text-left">類型</th><th className="px-2 py-2 text-left">數量</th><th className="px-2 py-2 text-left hidden sm:table-cell">備註</th></tr></thead>
+                        <tbody>
+                          {paginatedLogs.map(log => {
+                            const prod = products.find(x => x.id === log.productId);
+                            return (
+                              <tr key={log.id} className="border-t">
+                                <td className="px-2 py-2 text-gray-500">{new Date(log.timestamp).toLocaleDateString('zh-TW')}</td>
+                                <td className="px-2 py-2">{prod?.name || '已刪除'}</td>
+                                <td className="px-2 py-2"><span className={`px-1.5 py-0.5 rounded text-[10px] ${log.type === 'in' ? 'bg-green-100 text-green-600' : log.type === 'out' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{log.type === 'in' ? '進' : log.type === 'out' ? '出' : '盤'}</span></td>
+                                <td className={`px-2 py-2 font-semibold ${log.change > 0 ? 'text-green-600' : 'text-red-600'}`}>{log.change > 0 ? '+' : ''}{log.change}</td>
+                                <td className="px-2 py-2 text-gray-500 hidden sm:table-cell max-w-[150px] truncate">{log.note}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Pagination currentPage={logPage} totalItems={inventoryLog.length} pageSize={logPageSize} onPageChange={(p) => setLogPage(p)} onPageSizeChange={(s) => { setLogPageSize(s); setLogPage(1); }} />
+                  </div>
+                </>
+              )}
             </div>
           )}
 
           {/* 商品管理 */}
           {tab === 'products' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">📦 商品管理</h2>
-                <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary-dark text-sm">+ 新增</button>
-              </div>
+              <div className="flex justify-between items-center mb-4"><h2 className="text-xl sm:text-2xl font-bold">📦 商品管理</h2><button onClick={() => { setEditProduct(null); setShowModal(true); }} className="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary-dark text-xs sm:text-sm">+ 新增</button></div>
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs">商品</th><th className="px-3 py-2 text-left text-xs hidden sm:table-cell">分類</th><th className="px-3 py-2 text-left text-xs">價格</th><th className="px-3 py-2 text-left text-xs">庫存</th><th className="px-3 py-2 text-left text-xs">操作</th></tr></thead>
-                  <tbody>
-                    {products.map(p => (
-                      <tr key={p.id} className="border-t">
-                        <td className="px-3 py-2 font-semibold text-xs">{p.name}</td>
-                        <td className="px-3 py-2 text-xs hidden sm:table-cell">{getCategoryName(p.category)}</td>
-                        <td className="px-3 py-2 text-xs">{formatPrice(p.price)}</td>
-                        <td className="px-3 py-2 text-xs">{p.stock}</td>
-                        <td className="px-3 py-2 space-x-1">
-                          <button onClick={() => { setEditProduct(p); setShowModal(true); }} className="px-1.5 py-1 bg-gray-100 rounded hover:bg-gray-200 text-xs">✏️</button>
-                          <button onClick={() => { if (confirm('確定刪除？')) deleteProduct(p.id); }} className="px-1.5 py-1 bg-red-50 rounded hover:bg-red-100 text-xs">🗑️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs">商品</th><th className="px-3 py-2 text-left text-xs hidden sm:table-cell">分類</th><th className="px-3 py-2 text-left text-xs">價格</th><th className="px-3 py-2 text-left text-xs">庫存</th><th className="px-3 py-2 text-left text-xs">操作</th></tr></thead>
+                    <tbody>
+                      {paginatedProductsManage.map(p => (
+                        <tr key={p.id} className="border-t">
+                          <td className="px-3 py-2 font-semibold text-xs">{p.name}</td>
+                          <td className="px-3 py-2 text-xs hidden sm:table-cell">{getCategoryName(p.category)}</td>
+                          <td className="px-3 py-2 text-xs">{formatPrice(p.price)}</td>
+                          <td className="px-3 py-2 text-xs">{p.stock}</td>
+                          <td className="px-3 py-2 space-x-1">
+                            <button onClick={() => { setEditProduct(p); setShowModal(true); }} className="px-1.5 py-1 bg-gray-100 rounded hover:bg-gray-200 text-xs">✏️</button>
+                            <button onClick={() => { if (confirm('確定刪除？')) deleteProduct(p.id); }} className="px-1.5 py-1 bg-red-50 rounded hover:bg-red-100 text-xs">🗑️</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination currentPage={prodPage} totalItems={products.length} pageSize={prodPageSize} onPageChange={(p) => setProdPage(p)} onPageSizeChange={(s) => { setProdPageSize(s); setProdPage(1); }} />
               </div>
             </div>
           )}
@@ -363,33 +480,36 @@ export default function Admin() {
           {/* 訂單管理 */}
           {tab === 'orders' && (
             <div>
-              <h2 className="text-xl font-bold mb-4">📋 訂單管理</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-4">📋 訂單管理</h2>
               {orders.length === 0 ? <div className="text-center py-12 text-gray-500">尚無訂單</div> : (
-                <div className="space-y-4">
-                  {orders.map(o => {
-                    const isLocked = o.status === 'completed' || o.status === 'cancelled';
-                    return (
-                      <div key={o.id} className={`bg-white rounded-xl p-4 shadow-sm ${isLocked ? 'opacity-75' : ''}`}>
-                        <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
-                          <div><div className="font-semibold text-sm">{o.id}</div><div className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleString('zh-TW')}</div></div>
-                          {isLocked ? (
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(o.status)}`}>{getStatusName(o.status)} 🔒</span>
-                          ) : (
-                            <select value={o.status} onChange={(e) => handleStatusChange(o.id, e.target.value)} className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusColor(o.status)}`}>
-                              <option value="pending">待處理</option><option value="confirmed">已確認</option><option value="shipping">配送中</option><option value="completed">已完成</option><option value="cancelled">已取消</option>
-                            </select>
-                          )}
+                <>
+                  <div className="space-y-4">
+                    {paginatedOrders.map(o => {
+                      const isLocked = o.status === 'completed' || o.status === 'cancelled';
+                      return (
+                        <div key={o.id} className={`bg-white rounded-xl p-4 shadow-sm ${isLocked ? 'opacity-75' : ''}`}>
+                          <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
+                            <div><div className="font-semibold text-sm">{o.id}</div><div className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleString('zh-TW')}</div></div>
+                            {isLocked ? (
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(o.status)}`}>{getStatusName(o.status)} 🔒</span>
+                            ) : (
+                              <select value={o.status} onChange={(e) => handleStatusChange(o.id, e.target.value)} className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusColor(o.status)}`}>
+                                <option value="pending">待處理</option><option value="confirmed">已確認</option><option value="shipping">配送中</option><option value="completed">已完成</option><option value="cancelled">已取消</option>
+                              </select>
+                            )}
+                          </div>
+                          {o.customerName && <div className="text-xs text-gray-600 mb-2">👤 {o.customerName} | 📞 {o.customerPhone} | 📍 {o.customerAddress}</div>}
+                          <div className="border-t pt-3">
+                            <div className="space-y-1 mb-2">{o.items.map((item, idx) => <div key={idx} className="flex justify-between text-xs"><span>{item.name} × {item.quantity}</span><span>{formatPrice(item.price * item.quantity)}</span></div>)}</div>
+                            <div className="flex justify-between font-bold text-sm"><span>總計</span><span className="text-primary">{formatPrice(o.total)}</span></div>
+                          </div>
+                          {isLocked && <div className="mt-2 text-xs text-gray-400 text-center">此訂單已{o.status === 'completed' ? '完成' : '取消'}，無法再變更狀態</div>}
                         </div>
-                        {o.customerName && <div className="text-xs text-gray-600 mb-2">👤 {o.customerName} | 📞 {o.customerPhone} | 📍 {o.customerAddress}</div>}
-                        <div className="border-t pt-3">
-                          <div className="space-y-1 mb-2">{o.items.map((item, idx) => (<div key={idx} className="flex justify-between text-xs"><span>{item.name} × {item.quantity}</span><span>{formatPrice(item.price * item.quantity)}</span></div>))}</div>
-                          <div className="flex justify-between font-bold text-sm"><span>總計</span><span className="text-primary">{formatPrice(o.total)}</span></div>
-                        </div>
-                        {isLocked && <div className="mt-2 text-xs text-gray-400 text-center">此訂單已{o.status === 'completed' ? '完成' : '取消'}，無法再變更狀態</div>}
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                  <Pagination currentPage={orderPage} totalItems={orders.length} pageSize={orderPageSize} onPageChange={(p) => setOrderPage(p)} onPageSizeChange={(s) => { setOrderPageSize(s); setOrderPage(1); }} />
+                </>
               )}
             </div>
           )}
@@ -397,28 +517,33 @@ export default function Admin() {
           {/* 顧客管理 */}
           {tab === 'customers' && (
             <div>
-              <h2 className="text-xl font-bold mb-4">👥 顧客管理</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-4">👥 顧客管理</h2>
               {customersLoading ? <LoadingSpinner /> : customers.length === 0 ? <div className="text-center py-12 text-gray-500">尚無顧客</div> : (
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50"><tr><th className="px-3 py-3 text-left text-xs">顧客</th><th className="px-3 py-3 text-left text-xs hidden sm:table-cell">Email</th><th className="px-3 py-3 text-left text-xs">訂單數</th><th className="px-3 py-3 text-left text-xs">消費總額</th><th className="px-3 py-3 text-left text-xs hidden sm:table-cell">註冊日期</th><th className="px-3 py-3 text-left text-xs">操作</th></tr></thead>
-                    <tbody>
-                      {customers.map(c => {
-                        const stats = getCustomerStats(c.id);
-                        return (<tr key={c.id} className="border-t hover:bg-gray-50">
-                          <td className="px-3 py-3"><div className="font-semibold text-sm">{c.name}</div><div className="text-xs text-gray-500 sm:hidden">{c.email}</div></td>
-                          <td className="px-3 py-3 text-xs hidden sm:table-cell">{c.email}</td>
-                          <td className="px-3 py-3"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">{stats.orderCount} 筆</span></td>
-                          <td className="px-3 py-3 font-semibold text-primary text-xs">{formatPrice(stats.totalSpent)}</td>
-                          <td className="px-3 py-3 text-xs text-gray-500 hidden sm:table-cell">{new Date(c.created_at).toLocaleDateString('zh-TW')}</td>
-                          <td className="px-3 py-3 space-x-1">
-                            <button onClick={() => setEditCustomer(c)} className="px-1.5 py-1 bg-gray-100 rounded hover:bg-gray-200 text-xs">✏️</button>
-                            <button onClick={() => handleDeleteCustomer(c.id)} className="px-1.5 py-1 bg-red-50 rounded hover:bg-red-100 text-xs">🗑️</button>
-                          </td>
-                        </tr>);
-                      })}
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50"><tr><th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">顧客</th><th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 hidden sm:table-cell">Email</th><th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">訂單數</th><th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">消費總額</th><th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 hidden sm:table-cell">註冊日期</th><th className="px-3 py-3 text-left text-xs font-semibold text-gray-600">操作</th></tr></thead>
+                      <tbody>
+                        {paginatedCustomers.map(c => {
+                          const stats = getCustomerStats(c.id);
+                          return (
+                            <tr key={c.id} className="border-t hover:bg-gray-50">
+                              <td className="px-3 py-3"><div className="font-semibold text-sm">{c.name}</div><div className="text-xs text-gray-500 sm:hidden">{c.email}</div></td>
+                              <td className="px-3 py-3 text-xs hidden sm:table-cell">{c.email}</td>
+                              <td className="px-3 py-3"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">{stats.orderCount} 筆</span></td>
+                              <td className="px-3 py-3 font-semibold text-primary text-xs">{formatPrice(stats.totalSpent)}</td>
+                              <td className="px-3 py-3 text-xs text-gray-500 hidden sm:table-cell">{new Date(c.created_at).toLocaleDateString('zh-TW')}</td>
+                              <td className="px-3 py-3 space-x-1">
+                                <button onClick={() => setEditCustomer(c)} className="px-1.5 py-1 bg-gray-100 rounded hover:bg-gray-200 text-xs">✏️</button>
+                                <button onClick={() => handleDeleteCustomer(c.id)} className="px-1.5 py-1 bg-red-50 rounded hover:bg-red-100 text-xs">🗑️</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination currentPage={custPage} totalItems={customers.length} pageSize={custPageSize} onPageChange={(p) => setCustPage(p)} onPageSizeChange={(s) => { setCustPageSize(s); setCustPage(1); }} />
                 </div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
@@ -430,7 +555,6 @@ export default function Admin() {
           )}
         </div>
       </div>
-
       {showModal && <ProductModal product={editProduct} onClose={() => { setShowModal(false); setEditProduct(null); }} onSave={handleSaveProduct} />}
       {invModal && <InventoryModal product={invModal} onClose={() => setInvModal(null)} onSave={updateInventory} />}
       {editCustomer && <CustomerModal customer={editCustomer} onClose={() => setEditCustomer(null)} onSave={handleSaveCustomer} />}

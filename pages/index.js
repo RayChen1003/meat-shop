@@ -13,10 +13,10 @@ const Hero = () => (
   >
     <div className="px-4">
       <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white font-bold mb-3 sm:mb-4 leading-tight">
-        介紹詞等待輸入<br /><span className="text-accent">公司名稱</span>
+        嚴選世界頂級<br /><span className="text-accent">精品肉舖</span>
       </h1>
       <p className="text-white/80 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-md mx-auto">
-        內容等待輸入
+        從牧場到餐桌，為您呈獻最純粹的美味體驗
       </p>
       <Link 
         href="/products" 
@@ -37,8 +37,8 @@ export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>公司名稱 | Premium Meat Selection</title>
-        <meta name="description" content="標語待輸入" />
+        <title>御選精肉 | Premium Meat Selection</title>
+        <meta name="description" content="嚴選世界頂級肉品，為您呈獻最純粹的美味體驗" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 

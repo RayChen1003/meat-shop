@@ -28,7 +28,7 @@ export const Header = () => {
         <Link href="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-lg">肉</div>
           <div>
-            <div className="text-white text-base sm:text-xl font-bold tracking-wide">公司名稱</div>
+            <div className="text-white text-base sm:text-xl font-bold tracking-wide">御選精肉</div>
             <div className="text-accent text-[10px] sm:text-xs tracking-widest hidden sm:block">PREMIUM MEAT</div>
           </div>
         </Link>
@@ -121,9 +121,9 @@ export const Footer = () => (
       <div>
         <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center text-white font-bold text-sm sm:text-base">肉</div>
-          <span className="text-lg sm:text-xl font-bold">公司名稱</span>
+          <span className="text-lg sm:text-xl font-bold">御選精肉</span>
         </div>
-        <p className="text-gray-400 text-sm">標語等待輸入</p>
+        <p className="text-gray-400 text-sm">嚴選世界頂級肉品，為您呈獻最純粹的美味體驗</p>
       </div>
       <div>
         <h4 className="text-accent font-semibold mb-2 sm:mb-3 text-sm sm:text-base">聯絡我們</h4>
@@ -137,7 +137,7 @@ export const Footer = () => (
       </div>
     </div>
     <div className="text-center text-gray-500 text-xs sm:text-sm mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-800">
-      © 2026 公司名稱 Premium Meat Selection
+      © 2026 御選精肉 Premium Meat Selection
     </div>
   </footer>
 );

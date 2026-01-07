@@ -11,7 +11,7 @@ export default function Cart() {
     return (
       <Layout>
         <Head>
-          <title>購物車 | 公司名稱</title>
+          <title>購物車 | 御選精肉</title>
         </Head>
         <div className="text-center py-16 sm:py-20 px-4">
           <div className="text-5xl sm:text-6xl opacity-50 mb-3 sm:mb-4">🛒</div>
@@ -28,7 +28,7 @@ export default function Cart() {
   return (
     <Layout>
       <Head>
-        <title>購物車 | 公司名稱</title>
+        <title>購物車 | 御選精肉</title>
       </Head>
 
       <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
