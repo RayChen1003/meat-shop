@@ -22,7 +22,7 @@ export default function Checkout() {
     return (
       <Layout>
         <Head>
-          <title>結帳 | 御選精肉</title>
+          <title>結帳 | 公司名稱</title>
         </Head>
         <div className="text-center py-16 px-4">
           <div className="text-5xl opacity-50 mb-4">🛒</div>
@@ -65,7 +65,7 @@ export default function Checkout() {
   return (
     <Layout>
       <Head>
-        <title>結帳 | 御選精肉</title>
+        <title>結帳 | 公司名稱</title>
       </Head>
 
       <div className="max-w-4xl mx-auto px-4 py-8">

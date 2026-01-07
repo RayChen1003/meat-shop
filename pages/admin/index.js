@@ -257,7 +257,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-[#faf8f5]">
-      <Head><title>後台管理 | 御選精肉</title></Head>
+      <Head><title>後台管理 | 公司名稱</title></Head>
       <Header />
 
       <div className="flex flex-col md:flex-row min-h-[calc(100vh-60px)]">
