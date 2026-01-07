@@ -22,7 +22,7 @@ export default function Products() {
   return (
     <Layout>
       <Head>
-        <title>商品列表 | 御選精肉</title>
+        <title>商品列表 | 肉品公司</title>
         <meta name="description" content="瀏覽我們精選的頂級肉品" />
       </Head>
 

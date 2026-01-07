@@ -7,7 +7,7 @@ export default function OrderSuccess() {
   return (
     <Layout>
       <Head>
-        <title>訂單成功 | 御選精肉</title>
+        <title>訂單成功 | 肉品公司</title>
       </Head>
 
       <div className="text-center py-16 sm:py-24 px-4">

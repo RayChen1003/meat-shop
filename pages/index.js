@@ -37,7 +37,7 @@ export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>御選精肉 | Premium Meat Selection</title>
+        <title>肉品公司 | MEAT COMPANY</title>
         <meta name="description" content="嚴選世界頂級肉品，為您呈獻最純粹的美味體驗" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>

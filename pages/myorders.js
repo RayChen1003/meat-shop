@@ -21,7 +21,7 @@ export default function MyOrders() {
     return (
       <Layout>
         <Head>
-          <title>我的訂單 | 御選精肉</title>
+          <title>我的訂單 | 肉品公司</title>
         </Head>
         <LoadingSpinner />
       </Layout>
@@ -37,7 +37,7 @@ export default function MyOrders() {
   return (
     <Layout>
       <Head>
-        <title>我的訂單 | 御選精肉</title>
+        <title>我的訂單 | 肉品公司</title>
       </Head>
 
       <div className="max-w-4xl mx-auto px-4 py-8">

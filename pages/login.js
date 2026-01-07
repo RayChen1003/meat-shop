@@ -54,7 +54,7 @@ export default function Login() {
   return (
     <Layout>
       <Head>
-        <title>{isLogin ? '登入' : '註冊'} | 御選精肉</title>
+        <title>{isLogin ? '登入' : '註冊'} | 肉品公司</title>
       </Head>
 
       <div className="min-h-[70vh] flex items-center justify-center px-4 py-8">
