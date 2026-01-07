@@ -13,10 +13,10 @@ const Hero = () => (
   >
     <div className="px-4">
       <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white font-bold mb-3 sm:mb-4 leading-tight">
-        嚴選世界頂級<br /><span className="text-accent">精品肉舖</span>
+        介紹詞等待輸入<br /><span className="text-accent">公司名稱</span>
       </h1>
       <p className="text-white/80 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-md mx-auto">
-        從牧場到餐桌，為您呈獻最純粹的美味體驗
+        內容等待輸入
       </p>
       <Link 
         href="/products" 
